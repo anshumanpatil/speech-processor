@@ -1,0 +1,15 @@
+{
+    "name": "recorder",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "scripts": {
+      "start": "nodemon --exec go run server/main.go --signal SIGTERM"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+      "nodemon": "^2.0.20"
+    }
+  }

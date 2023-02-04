@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Simple Recorder.js demo with record, stop and pause - addpipe.com</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="js/jquery-3.6.3.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="style.css">
+    
+  </head>
+  <body>
+    <h1>Simple Recording And Speech Recognition demo</h1>
+    <p><small>Pipe Audio Recording And Recognize Speech</small></p>
+    <div id="controls">
+  	 <button id="recordButton">Record</button>
+  	 <button id="pauseButton" disabled>Pause</button>
+  	 <button id="stopButton" disabled>Stop</button>
+    </div>
+    <div id="formats">Format: start recording to see sample rate</div>
+  	<p><strong>Recordings:</strong></p>
+    
+  	<ol id="recordingsList"></ol>
+    <div id="controls" class="speechControls">
+      <button id="downloadButton">Download</button>
+      <button id="uploadButton">Upload To Server</button>
+      <button id="speecRecognitionhButton">Speech Recognition</button>
+     </div>
+
+     <div id="overlay">
+      <div class="cv-spinner">
+        <span class="spinner"></span>
+      </div>
+    </div>
+    <!-- inserting these scripts at the end to be able to use all the elements in the DOM -->
+  	<script src="js/recorder.js"></script>
+  	<script src="js/app.js"></script>
+    
+
+  </body>
+</html>
