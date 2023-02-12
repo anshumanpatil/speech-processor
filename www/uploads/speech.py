@@ -1,24 +1,56 @@
-#!/usr/bin/env python3
-"""
-Recognize a single utterance from a WAV file.
-Supporting other file types is left as an exercise to the reader.
-"""
 
-# MIT license (c) 2022, see LICENSE for more information.
-# Author: David Huggins-Daines <dhdaines@gmail.com>
+# !/usr/bin/env python3
 
-from pocketsphinx import Decoder
-import argparse
-import wave
+import speech_recognition as sr
+from os import path
+import sys
 
-parser = argparse.ArgumentParser(description=__doc__)
+from kafka import KafkaConsumer, KafkaProducer
+import sys
+import json
+global_id_var = []
+bootstrap_servers = ['localhost:9092']
+topicName = 'speech-translator-receiver'
 
-parser.add_argument("audio", help="Audio file to recognize")
-args = parser.parse_args()
-with wave.open(args.audio, "rb") as audio:
-    print("audio.getframerate()", audio.getframerate())
-    decoder = Decoder(samprate=audio.getframerate())
-    decoder.start_utt()
-    decoder.process_raw(audio.getfp().read(), full_utt=True)
-    decoder.end_utt()
-    print(decoder.hyp().hypstr)
+topicResultName = 'speech-translator-stt'
+producer = KafkaProducer(bootstrap_servers = bootstrap_servers)
+producer = KafkaProducer()
+
+consumer = KafkaConsumer (topicName, group_id = 'group1',bootstrap_servers = bootstrap_servers, auto_offset_reset = 'earliest')
+    
+
+def speech_rec(message):
+    json_object = json.loads(message)
+    print(json_object)
+    print("\n\n")
+    global_id_var.append(json_object["id"])
+    print(global_id_var)
+    print(json_object["name"])
+
+    AUDIO_FILE = path.join(path.dirname(path.realpath(__file__)), json_object["name"]   )
+    r = sr.Recognizer()
+    with sr.AudioFile(AUDIO_FILE) as source:
+        audio = r.record(source)
+    try:
+        sp = r.recognize_google(audio)
+        print("Google Speech Recognition thinks you said " + r.recognize_google(audio))
+        return sp
+    except sr.UnknownValueError:
+        print("Google Speech Recognition could not understand audio")
+        return "Google Speech Recognition could not understand audio"
+    except sr.RequestError as e:
+        print("Could not request results from Google Speech Recognition service; {0}".format(e))
+        return e
+
+try:
+    for message in consumer:
+        # print ("%s:%d:%d: key=%s value=%s" % (message.topic, message.partition,message.offset, message.key,message.value))
+        spVal = speech_rec(message.value)
+        print(type(spVal))
+        if(isinstance(spVal, str)):
+            ack = producer.send(topicResultName, str.encode(spVal))
+
+except KeyboardInterrupt:
+    sys.exit()
+
+

@@ -1,6 +1,10 @@
 //webkitURL is deprecated but nevertheless
 URL = window.URL || window.webkitURL;
-$('.speechControls').css('visibility', 'hidden');
+
+var blobObj = {
+
+}
+
 var gumStream; 						//stream from getUserMedia()
 var rec; 							//Recorder.js object
 var input; 							//MediaStreamAudioSourceNode we'll be recording
@@ -11,16 +15,21 @@ var audioContext //audio context to help us record
 
 var recordButton = document.getElementById("recordButton");
 var stopButton = document.getElementById("stopButton");
-var pauseButton = document.getElementById("pauseButton");
 
 //add events to those 2 buttons
 recordButton.addEventListener("click", startRecording);
 stopButton.addEventListener("click", stopRecording);
-pauseButton.addEventListener("click", pauseRecording);
+
+const UUIDGeneratorBrowser = () =>
+  ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c =>
+    (c ^ (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (c / 4)))).toString(16)
+  );
+// console.log(UUIDGeneratorBrowser());
 
 function startRecording() {
 	console.log("recordButton clicked");
-
+	stopButton.disabled = false;
+	recordButton.disabled = true;
 	/*
 		Simple constraints object, for more advanced audio features see
 		https://addpipe.com/blog/audio-constraints-getusermedia/
@@ -32,9 +41,8 @@ function startRecording() {
     	Disable the record button until we get a success or fail from getUserMedia() 
 	*/
 
-	recordButton.disabled = true;
-	stopButton.disabled = false;
-	pauseButton.disabled = false
+	// resetRecording()
+	// pauseButton.disabled = false
 
 	/*
     	We're using the standard promise based getUserMedia() 
@@ -73,25 +81,8 @@ function startRecording() {
 		console.log("Recording started");
 
 	}).catch(function(err) {
-	  	//enable the record button if getUserMedia() fails
-    	recordButton.disabled = false;
-    	stopButton.disabled = true;
-    	pauseButton.disabled = true
+		resetRecording()
 	});
-}
-
-function pauseRecording(){
-	console.log("pauseButton clicked rec.recording=",rec.recording );
-	if (rec.recording){
-		//pause
-		rec.stop();
-		pauseButton.innerHTML="Resume";
-	}else{
-		//resume
-		rec.record()
-		pauseButton.innerHTML="Pause";
-
-	}
 }
 
 function stopRecording() {
@@ -100,11 +91,11 @@ function stopRecording() {
 	//disable the stop button, enable the record too allow for new recordings
 	stopButton.disabled = true;
 	recordButton.disabled = false;
-	pauseButton.disabled = true;
-	recordButton.disabled = true;
+	// pauseButton.disabled = true;
+	// recordButton.disabled = true;
 
 	//reset button just in case the recording is stopped while paused
-	pauseButton.innerHTML="Pause";
+	// pauseButton.innerHTML="Pause";
 	
 	//tell the recorder to stop the recording
 	rec.stop();
@@ -115,63 +106,75 @@ function stopRecording() {
 	//create the wav blob and pass it on to createDownloadLink
 	rec.exportWAV(createDownloadLink);
 }
+function htmlToElement(au, uuid) {
+	var tr = document.createElement('tr');
 
-function createDownloadLink(blob) {
-	$('.speechControls').css('visibility', 'visible');
-	var url = URL.createObjectURL(blob);
-	var au = document.createElement('audio');
-	var li = document.createElement('li');
+	var td_id = document.createElement('td');
 
-	//name of .wav file to use during upload and download (without extendion)
-	var filename = new Date().toISOString();
+	var td_audio = document.createElement('td');
 
-	au.controls = true;
-	au.src = url;
-
-
-	$('#downloadButton').on('click', function (e) {
-		e.preventDefault();
-		$("#overlay").fadeIn(300);
-        saveRecording(blob)
-		
-	})
-
-	$('#uploadButton').on('click', function (e) {
-		e.preventDefault();
-		$("#overlay").fadeIn(300);
-        saveRecording(blob)
-	})
+	var td_btn = document.createElement('td');
 	
-	$('#speecRecognitionhButton').on('click', function (e) {
+
+	var spch_btn = document.createElement('button');
+	spch_btn.innerText = "Generate Speech"
+
+	var span = document.createElement('span');
+	span.innerHTML = uuid
+	td_id.appendChild(span)
+	td_audio.appendChild(au)
+	td_btn.appendChild(spch_btn)
+
+
+	tr.appendChild(td_id)
+	tr.appendChild(td_audio)
+	tr.appendChild(td_btn)
+
+	
+	td_btn.addEventListener("click",  function (e) {
 		e.preventDefault();
 		$("#overlay").fadeIn(300);
-        saveRecording(blob)
+        saveRecording(blobObj[uuid], uuid)
+		td_btn.disabled = true
 	})
-	li.appendChild(au);
-	li.appendChild(document.createTextNode(filename+".wav "))
-	
-	recordingsList.appendChild(li);
+
+    return tr;
 }
 
-function saveRecording(audioBlob) {
+function createDownloadLink(blob) {
+	var recId = UUIDGeneratorBrowser()
+	var url = URL.createObjectURL(blob);
+	var au = document.createElement('audio');
+	var tbd = document.getElementById("tbd");
+	au.controls = true;
+	au.src = url;
+	tbd.appendChild(htmlToElement(au, recId));
+	blobObj[recId] = blob;
+}
+
+function saveRecording(audioBlob, name) {
 	const formData = new FormData();
-	formData.append('audio', audioBlob, 'recording.wav');
+	formData.append('audio', audioBlob, name+'.wav');
 	fetch('/upload', {
 	  method: 'POST',
 	  body: formData,
 	})
 	  .then((response) => response.json())
 	  .then(() => {
-		// resetRecording();
+		resetRecording();
 		$("#overlay").fadeOut(300);
 	  })
 	  .catch((err) => {
 		console.error(err);
-		// resetRecording();
+		resetRecording();
 		$("#overlay").fadeOut(300);
 	  });
   }
 
 var resetRecording = () => {
-	window.location.reload()
+	console.log("resetRecording clicked");
+	stopButton.disabled = true;
+	recordButton.disabled = false;
+	// pauseButton.disabled = true;
+	// window.location.reload()
 }
